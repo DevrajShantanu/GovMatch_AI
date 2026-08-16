@@ -140,7 +140,7 @@ export function BiasDetectionPanel({ initialMetrics, initialDemographics }: Bias
                     fill="#94a3b8" 
                     fontSize={11} 
                     fontWeight="bold"
-                    formatter={(val: number) => `${val}%`} 
+                    formatter={(val: any) => `${val}%`} 
                   />
                 </Bar>
               </BarChart>
@@ -167,7 +167,8 @@ export function BiasDetectionPanel({ initialMetrics, initialDemographics }: Bias
                   outerRadius={75}
                   innerRadius={45}
                   paddingAngle={4}
-                  label={({ name, percent, cx, cy, midAngle, outerRadius }) => {
+                  label={(props: any) => {
+                    const { name, percent = 0, cx = 0, cy = 0, midAngle = 0, outerRadius = 0 } = props;
                     const RADIAN = Math.PI / 180;
                     const radius = outerRadius + 20;
                     const x = cx + radius * Math.cos(-midAngle * RADIAN);

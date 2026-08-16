@@ -14,7 +14,9 @@ let browserClient: SupabaseClient | null = null;
 
 export function getSupabaseBrowserClient(): SupabaseClient {
   if (!browserClient) {
-    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    const url = supabaseUrl || "https://placeholder.supabase.co";
+    const key = supabaseAnonKey || "placeholder";
+    browserClient = createBrowserClient(url, key);
   }
   return browserClient;
 }
