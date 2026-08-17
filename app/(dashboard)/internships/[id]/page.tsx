@@ -150,6 +150,7 @@ export default function InternshipDetailPage() {
   const [explainOpen, setExplainOpen] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
+  const [localApplied, setLocalApplied] = useState(false);
 
   const userSkills = useMemo(() => {
     return profile?.skills && profile.skills.length > 0
@@ -189,8 +190,10 @@ export default function InternshipDetailPage() {
     return mapToFrontendInternship(rawInternship, userSkills);
   }, [rawInternship, userSkills]);
 
-  // Check if currently authenticated user has applied for this position
-  const isApplied = applications.some((app) => app.internship_id === id);
+  // Check if currently authenticated user has a pending application
+  const existingApplication = applications.find((app) => app.internship_id === id);
+  const isPending = existingApplication && ["Submitted", "Pending", "Under Review"].includes(existingApplication.status);
+  const isApplied = isPending || localApplied;
 
   // Handle live application submission directly to Supabase
   const handleApply = async () => {
@@ -207,19 +210,37 @@ export default function InternshipDetailPage() {
       const supabase = getSupabaseBrowserClient();
       const matchScore = internship?.matchScore ?? 85;
 
-      const { error: insertError } = await supabase.from("applications").insert({
-        user_id: user.id,
-        internship_id: id,
-        status: "Submitted",
-        match_score: matchScore,
-        created_at: new Date().toISOString(),
-      });
+      if (existingApplication && (existingApplication.status === "Rejected" || existingApplication.status === "Accepted")) {
+        // Retry application: Update existing finalized record instead of inserting new one
+        const { error: updateError } = await supabase.from("applications")
+          .update({
+            status: "Submitted",
+            match_score: matchScore,
+            applied_at: new Date().toISOString(),
+          })
+          .eq("id", existingApplication.id);
+          
+        if (updateError) throw new Error(updateError.message);
+      } else {
+        // First time application: Insert new record
+        const { error: insertError } = await supabase.from("applications").insert({
+          user_id: user.id,
+          internship_id: id,
+          status: "Submitted",
+          match_score: matchScore,
+          applied_at: new Date().toISOString(),
+        });
 
-      if (insertError) {
-        throw new Error(insertError.message);
+        if (insertError) {
+          if (insertError.message.includes("duplicate key value") || insertError.code === "23505") {
+            throw new Error("You have already submitted an application for this internship.");
+          }
+          throw new Error(insertError.message);
+        }
       }
 
       await refreshApplications();
+      setLocalApplied(true);
       success(`Your application for "${internship?.title}" was submitted successfully!`, "Application Sent");
     } catch (err: any) {
       const msg = err?.message || "Failed to submit application. Please try again.";

@@ -16,6 +16,9 @@ interface Notification {
   time: string;
   type: "AI_UPDATE" | "RECOMMENDATION" | "SKILL_GAP" | "APPLICATION";
   read: boolean;
+  rawStatus?: string;
+  rawTime?: string;
+  hash: string;
 }
 
 const TYPE_ICON = {
@@ -39,6 +42,7 @@ const WELCOME_NOTIFICATION: Notification = {
   time: "Just now",
   type: "AI_UPDATE",
   read: false,
+  hash: "welcome_1_initial",
 };
 
 export default function NotificationsPage() {
@@ -56,6 +60,27 @@ export default function NotificationsPage() {
     }
   };
 
+  const getReadNotifs = (): string[] => {
+    if (typeof window === "undefined") return [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem("govmatch_read_notifs") || "[]");
+      if (Array.isArray(parsed)) return parsed;
+      // Migration from old object format
+      return Object.values(parsed);
+    } catch {
+      return [];
+    }
+  };
+
+  const setReadNotif = (hash: string) => {
+    if (typeof window === "undefined") return;
+    const read = getReadNotifs();
+    if (!read.includes(hash)) {
+      read.push(hash);
+      localStorage.setItem("govmatch_read_notifs", JSON.stringify(read));
+    }
+  };
+
   const loadApplicationNotifs = useCallback(async () => {
     if (!user) return;
     setLoadingApps(true);
@@ -63,9 +88,9 @@ export default function NotificationsPage() {
       const supabase = getSupabaseBrowserClient();
       const { data } = await supabase
         .from("applications")
-        .select("id, status, internship_id, created_at")
+        .select("id, status, internship_id, applied_at, notes, internships (title)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        .order("applied_at", { ascending: false })
         .limit(10);
 
       const hiddenIds = getHiddenNotifs();
@@ -77,22 +102,36 @@ export default function NotificationsPage() {
         allNotifs.push(WELCOME_NOTIFICATION);
       }
 
+      const readNotifs = getReadNotifs();
+
       if (data && data.length > 0) {
-        const appNotifs: Notification[] = data.map((app) => ({
-          id: `app_${app.id}`,
-          title: `Application ${app.status === "Pending" ? "Submitted" : app.status}`,
-          message: `Your internship application (ID: ${app.internship_id.slice(0, 8)}…) status is currently marked as ${app.status}.`,
-          time: new Date(app.created_at).toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          type: "APPLICATION" as const,
-          read: app.status !== "Pending" && app.status !== "Submitted",
-        }));
+        const appNotifs: Notification[] = data.map((app: any) => {
+          const internshipTitle = (Array.isArray(app.internships) ? app.internships[0]?.title : app.internships?.title) || "Internship";
+          let messageText = `Your application for "${internshipTitle}" (ID: ${app.internship_id.slice(0, 8)}…) is currently marked as ${app.status}.`;
+          
+          if (app.notes && (app.status === "Accepted" || app.status === "Rejected")) {
+            messageText += `\n\nAdmin Remarks: "${app.notes}"`;
+          }
+
+          return {
+            id: `app_${app.id}`,
+            title: `Application ${app.status === "Pending" ? "Submitted" : app.status}`,
+            message: messageText,
+            time: new Date(app.applied_at).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            type: "APPLICATION" as const,
+            rawStatus: app.status,
+            rawTime: app.applied_at,
+            hash: `app_${app.id}_${app.status}_${app.applied_at}`,
+            read: readNotifs.includes(`app_${app.id}_${app.status}_${app.applied_at}`),
+          };
+        });
         
-        allNotifs.push(...appNotifs.filter(n => !hiddenIds.includes(n.id)));
+        allNotifs.push(...appNotifs.filter(n => !hiddenIds.includes(n.hash)));
       }
       
       setNotifications(allNotifs);
@@ -133,25 +172,35 @@ export default function NotificationsPage() {
   }, [user?.id, loadApplicationNotifs]);
 
   const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setNotifications((prev) => {
+      const notif = prev.find(n => n.id === id);
+      if (notif) {
+        setReadNotif(notif.hash);
+      }
+      return prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+    });
   };
 
   const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => {
+      prev.forEach(n => {
+        setReadNotif(n.hash);
+      });
+      return prev.map((n) => ({ ...n, read: true }));
+    });
     info("All notifications marked as read.");
   };
 
-  const deleteNotification = (id: string, e: React.MouseEvent) => {
+  const deleteNotification = (n: Notification, e: React.MouseEvent) => {
     e.stopPropagation();
     const hidden = getHiddenNotifs();
-    if (!hidden.includes(id)) {
-      hidden.push(id);
-      localStorage.setItem("govmatch_hidden_notifs", JSON.stringify(hidden));
-      window.dispatchEvent(new Event("govmatch_notifications_updated"));
-    }
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    hidden.push(n.hash);
+    localStorage.setItem("govmatch_hidden_notifs", JSON.stringify(hidden));
+
+    setNotifications((prev) => prev.filter((notif) => notif.id !== n.id));
+    
+    // Dispatch custom event to update navbar
+    window.dispatchEvent(new Event("govmatch_notifications_updated"));
     toast({
       title: "Notification deleted",
       message: "This notification has been permanently removed.",
@@ -234,7 +283,7 @@ export default function NotificationsPage() {
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[11px] text-on-surface-variant dark:text-slate-400 font-medium">{n.time}</span>
                       <button
-                        onClick={(e) => deleteNotification(n.id, e)}
+                        onClick={(e) => deleteNotification(n, e)}
                         className="text-on-surface-variant hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors"
                         title="Delete notification"
                       >
@@ -242,7 +291,7 @@ export default function NotificationsPage() {
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-on-surface-variant dark:text-slate-300 leading-relaxed">{n.message}</p>
+                  <p className="text-xs text-on-surface-variant dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{n.message}</p>
                   {!n.read && (
                     <button
                       onClick={(e) => {

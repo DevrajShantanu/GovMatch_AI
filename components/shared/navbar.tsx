@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Sparkles, Bell, Shield, Menu, X, LogOut, Settings, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ThemeToggle } from "../ui/theme-toggle";
@@ -15,7 +15,7 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const { user, profile, loading } = useAuth();
+  const { user, profile, applications, loading } = useAuth();
 
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
@@ -24,6 +24,9 @@ export function Navbar() {
   const userRole = profile?.role || "STUDENT";
 
   const [hasUnread, setHasUnread] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const prevCount = useRef(0);
 
   useEffect(() => {
     if (!user) {
@@ -32,11 +35,55 @@ export function Navbar() {
     }
     
     const checkUnread = () => {
-      const hidden = JSON.parse(localStorage.getItem("govmatch_hidden_notifs") || "[]");
-      if (!hidden.includes("welcome_1")) {
-        setHasUnread(true);
-      } else {
-        setHasUnread(false);
+      let count = 0;
+      
+      try {
+        const hidden = JSON.parse(localStorage.getItem("govmatch_hidden_notifs") || "[]");
+        
+        let readNotifs: string[] = [];
+        const rawRead = JSON.parse(localStorage.getItem("govmatch_read_notifs") || "[]");
+        if (Array.isArray(rawRead)) {
+          readNotifs = rawRead;
+        } else {
+          readNotifs = Object.values(rawRead);
+        }
+        
+        if (
+          !hidden.includes("welcome_1") && 
+          !hidden.includes("welcome_1_initial") && 
+          !readNotifs.includes("welcome_1_initial")
+        ) {
+          count++;
+        }
+
+        if (applications && applications.length > 0) {
+          for (const app of applications) {
+            const hash = `app_${app.id}_${app.status}_${app.applied_at}`;
+            
+            if (hidden.includes(hash)) continue;
+            
+            // Unread if this specific hash is NOT in the read history array
+            if (!readNotifs.includes(hash)) {
+              count++;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse local storage for notifications", e);
+      }
+      
+      setUnreadCount(count);
+      setHasUnread(count > 0);
+
+      // Show preview for 4 seconds on initial load if there are unread notifications
+      // Ensure it only shows ONCE per login session using sessionStorage
+      if (count > 0) {
+        const hasShownPreview = sessionStorage.getItem("govmatch_preview_shown");
+        if (!hasShownPreview) {
+          setShowPreview(true);
+          sessionStorage.setItem("govmatch_preview_shown", "true");
+          setTimeout(() => setShowPreview(false), 4000);
+        }
       }
     };
 
@@ -48,7 +95,7 @@ export function Navbar() {
     return () => {
       window.removeEventListener("govmatch_notifications_updated", checkUnread);
     };
-  }, [user, pathname]);
+  }, [user, pathname, applications]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-outline-variant/40 bg-white/90 dark:bg-slate-950/85 dark:border-slate-800/80 backdrop-blur-xl transition-colors shadow-xs">
@@ -135,22 +182,45 @@ export function Navbar() {
           ) : user ? (
             /* Authenticated state */
             <div className="flex items-center gap-2">
-              <Link href="/notifications">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative text-on-surface-variant dark:text-slate-300 hover:text-primary dark:hover:text-blue-400 hover:bg-primary/5 dark:hover:bg-slate-800 rounded-full h-9 w-9"
-                  title="Notifications"
+              <div className="relative">
+                <Link href="/notifications">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative text-on-surface-variant dark:text-slate-300 hover:text-primary dark:hover:text-blue-400 hover:bg-primary/5 dark:hover:bg-slate-800 rounded-full h-9 w-9"
+                    title="Notifications"
+                  >
+                    <Bell className="h-4 w-4" />
+                    {hasUnread && (
+                      <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary dark:bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary dark:bg-blue-400"></span>
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+
+                {/* Auto-closing preview popup */}
+                <div 
+                  className={`absolute right-0 mt-3 w-64 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-outline-variant/40 dark:border-slate-800 p-3 z-50 transform origin-top-right transition-all duration-500 ease-out ${
+                    showPreview 
+                      ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" 
+                      : "opacity-0 scale-90 -translate-y-4 pointer-events-none"
+                  }`}
                 >
-                  <Bell className="h-4 w-4" />
-                  {hasUnread && (
-                    <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary dark:bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary dark:bg-blue-400"></span>
-                    </span>
-                  )}
-                </Button>
-              </Link>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 bg-primary/10 dark:bg-blue-900/40 p-1.5 rounded-full text-primary dark:text-blue-400">
+                      <Bell className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-on-surface dark:text-white">New Updates!</p>
+                      <p className="text-xs text-on-surface-variant dark:text-slate-400 mt-0.5">
+                        You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* User Avatar + Dropdown Button */}
               <div className="relative">

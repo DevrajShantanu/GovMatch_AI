@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from("applications")
           .select("*")
           .eq("user_id", userId)
-          .order("created_at", { ascending: false });
+          .order("applied_at", { ascending: false });
         if (!error && data) {
           setApplications(data as ApplicationRecord[]);
         }

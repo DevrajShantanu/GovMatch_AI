@@ -36,12 +36,6 @@ export function Sidebar({ className }: { className?: string }) {
     { name: "Recommendations", href: "/internships", icon: Briefcase },
     { name: "Resume Analysis", href: "/resume", icon: FileText },
     { name: "Skill Gap Matrix", href: "/skill-gap", icon: TrendingUp },
-    {
-      name: "Notifications",
-      href: "/notifications",
-      icon: Bell,
-      badge: applicationCount > 0 ? `${applicationCount}` : undefined,
-    },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 

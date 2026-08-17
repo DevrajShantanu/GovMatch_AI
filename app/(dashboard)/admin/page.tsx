@@ -1,4 +1,5 @@
 import { BiasDetectionPanel } from "@/components/admin/bias-detection-panel";
+import { ApplicationsTable } from "@/components/admin/applications-table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ShieldCheck, ShieldAlert, Users, Briefcase, Activity } from "lucide-react";
@@ -121,6 +122,11 @@ export default async function AdminPage() {
         initialMetrics={auditResult.metrics} 
         initialDemographics={auditResult.demographics} 
       />
+
+      <div className="w-full h-px bg-slate-200 dark:bg-slate-800 my-8" />
+
+      {/* Applications Management Table */}
+      <ApplicationsTable />
     </div>
   );
 }
