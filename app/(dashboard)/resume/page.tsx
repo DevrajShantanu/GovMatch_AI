@@ -122,15 +122,7 @@ export default function ResumeAnalysisPage() {
         education: education || "No education history found.",
         experience: experience || "No experience history found.",
         atsScore,
-        atsFeedback: (atsFeedback || []).map((msg: string) => {
-          const lowerMsg = msg.toLowerCase();
-          const type = lowerMsg.includes("strong") || lowerMsg.includes("good") || lowerMsg.includes("excellent") || lowerMsg.includes("well")
-            ? "strength"
-            : lowerMsg.includes("lack") || lowerMsg.includes("miss") || lowerMsg.includes("improv") || lowerMsg.includes("need")
-              ? "improvement"
-              : "keyword";
-          return { type, message: msg };
-        }),
+        atsFeedback,
       });
 
       setAnalyzed(true);
