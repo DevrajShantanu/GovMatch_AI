@@ -31,44 +31,45 @@ interface ParsedResume {
   education: string;
   experience: string;
   atsScore?: number;
-  atsFeedback?: string[];
+  atsFeedback?: {
+    type: "strength" | "improvement" | "keyword";
+    message: string;
+  }[];
 }
 
 function deriveDomainInterests(skills: string[], experience: string): string[] {
   const text = `${skills.join(" ")} ${experience}`.toLowerCase();
   const domains: string[] = [];
 
+  // Use regex with word boundaries to prevent substring matching (e.g., "portrait" matching "ai")
   if (
-    text.includes("ai") ||
-    text.includes("machine learning") ||
-    text.includes("python") ||
-    text.includes("nlp") ||
-    text.includes("deep learning")
+    /\bai\b/.test(text) ||
+    /\bmachine learning\b/.test(text) ||
+    /\bpython\b/.test(text) ||
+    /\bnlp\b/.test(text) ||
+    /\bdeep learning\b/.test(text)
   ) {
     domains.push("AI & Public Policy");
   }
   if (
-    text.includes("react") ||
-    text.includes("next") ||
-    text.includes("web") ||
-    text.includes("typescript") ||
-    text.includes("javascript") ||
-    text.includes("sql")
+    /\breact\b/.test(text) ||
+    /\bnext\.js\b/.test(text) ||
+    /\bnextjs\b/.test(text) ||
+    /\bweb\b/.test(text) ||
+    /\btypescript\b/.test(text) ||
+    /\bjavascript\b/.test(text) ||
+    /\bsql\b/.test(text)
   ) {
     domains.push("E-Governance & Web Systems");
   }
   if (
-    text.includes("security") ||
-    text.includes("network") ||
-    text.includes("cyber") ||
-    text.includes("cloud") ||
-    text.includes("docker")
+    /\bsecurity\b/.test(text) ||
+    /\bnetwork\b/.test(text) ||
+    /\bcyber\b/.test(text) ||
+    /\bcloud\b/.test(text) ||
+    /\bdocker\b/.test(text)
   ) {
     domains.push("National Cyber Infrastructure");
-  }
-
-  if (domains.length === 0) {
-    domains.push("Public Sector Technology", "Software Engineering");
   }
 
   return domains;
@@ -113,37 +114,23 @@ export default function ResumeAnalysisPage() {
       const { skills, education, experience, atsScore, atsFeedback } = resumeResult.data;
       setAnalyzeStep(3);
 
-      const combinedSkills =
-        skills.length > 0
-          ? skills
-          : ["Python", "TypeScript", "Next.js", "SQL", "Machine Learning"];
-
-      const interests = deriveDomainInterests(combinedSkills, experience);
+      const interests = deriveDomainInterests(skills, experience);
 
       setParsedData({
-        skills: combinedSkills,
+        skills: skills,
         interests,
-        education: education || "Bachelor of Technology in Computer Science",
-        experience: experience || "Academic projects and open-source contributions",
+        education: education || "No education history found.",
+        experience: experience || "No experience history found.",
         atsScore,
         atsFeedback,
       });
 
       setAnalyzed(true);
-      success(`Extracted ${combinedSkills.length} competencies from ${file.name}!`, "Resume Analyzed");
+      success(`Extracted ${skills.length} competencies from ${file.name}!`, "Resume Analyzed");
     } catch (err: any) {
-      console.warn("Real parsing encountered issue, generating structured analysis:", err);
-      const fallbackSkills = ["Python", "TypeScript", "Next.js", "React", "SQL", "NLP", "Git"];
-      setParsedData({
-        skills: fallbackSkills,
-        interests: ["AI & Public Policy", "E-Governance & Web Systems"],
-        education: "B.Tech Computer Science (2022-2026)",
-        experience: "Software Development & AI Research Projects",
-        atsScore: 75,
-        atsFeedback: ["Add more measurable metrics (e.g. 'improved performance by X%')", "Ensure standard section headers are used"],
-      });
-      setAnalyzed(true);
-      success("Resume parsed with structured competency extraction.", "Analysis Ready");
+      console.warn("Real parsing encountered issue:", err);
+      setError(err.message || "An error occurred while parsing the document.");
+      toastError(err.message || "Failed to parse resume.", "Analysis Failed");
     } finally {
       setAnalyzing(false);
       setAnalyzeStep(0);
@@ -440,9 +427,27 @@ export default function ResumeAnalysisPage() {
                 </div>
                 <div className="space-y-2 pt-1">
                   {parsedData.atsFeedback.map((feedback, idx) => (
-                    <div key={idx} className="flex items-start gap-3 bg-surface-container-low dark:bg-slate-800 p-3 rounded-lg border border-outline-variant/30 dark:border-slate-700">
-                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                      <p className="text-sm text-on-surface dark:text-slate-200">{feedback}</p>
+                    <div key={idx} className={`flex items-start gap-3 p-3 rounded-lg border ${
+                      feedback.type === 'strength' 
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60' 
+                        : feedback.type === 'improvement'
+                        ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/60'
+                        : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/60'
+                    }`}>
+                      {feedback.type === 'strength' ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      ) : feedback.type === 'improvement' ? (
+                        <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                      ) : (
+                        <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      )}
+                      <p className={`text-sm font-medium ${
+                        feedback.type === 'strength' 
+                          ? 'text-emerald-900 dark:text-emerald-200' 
+                          : feedback.type === 'improvement'
+                          ? 'text-red-900 dark:text-red-200'
+                          : 'text-blue-900 dark:text-blue-200'
+                      }`}>{feedback.message}</p>
                     </div>
                   ))}
                 </div>

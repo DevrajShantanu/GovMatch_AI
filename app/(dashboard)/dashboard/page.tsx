@@ -141,12 +141,12 @@ export default function StudentDashboardPage() {
   const userCollege = profile?.college || "Higher Education Institute";
   const userDegree = profile?.degree || "Degree Candidate";
   const userSkills = useMemo(() => {
-    return profile?.skills && profile.skills.length > 0
-      ? profile.skills
-      : ["Python", "Next.js", "TypeScript", "React", "SQL", "NLP"];
+    return profile?.skills || [];
   }, [profile?.skills]);
 
-  const userInterests = useMemo(() => ["AI & Public Policy", "Web Development", "Data Science"], []);
+  const userInterests = useMemo(() => {
+    return []; // Future: map from profile interests if available
+  }, []);
   const resumeText = useMemo(() => {
     return `Name: ${userName}. College: ${userCollege}. Degree: ${userDegree}. Skills: ${userSkills.join(", ")}. Bio: ${profile?.bio || ""}`;
   }, [userName, userCollege, userDegree, userSkills, profile?.bio]);

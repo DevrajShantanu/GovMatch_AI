@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseResumeWithGemini } from "@/lib/gemini";
 import { ApiResponse, ResumeParseResult } from "@/types";
-import { extractText, getDocumentProxy } from "unpdf";
 
 export const runtime = "nodejs";
 
@@ -24,47 +23,40 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<R
       );
     }
 
-    // Validate file type (must be PDF or binary document)
-    if (file.type && !file.type.includes("pdf") && !file.name.endsWith(".pdf")) {
+    // Allow PDF and Images for Multimodal Vision
+    const isValidFormat = 
+      (file.type && (file.type.includes("pdf") || file.type.includes("image"))) || 
+      file.name.toLowerCase().endsWith(".pdf") || 
+      file.name.toLowerCase().endsWith(".png") ||
+      file.name.toLowerCase().endsWith(".jpg") ||
+      file.name.toLowerCase().endsWith(".jpeg");
+
+    if (!isValidFormat) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid file format. Only PDF files are supported for resume parsing.",
+          error: "Invalid file format. Please upload a PDF, PNG, or JPEG file.",
         },
         { status: 400 }
       );
     }
 
-    // Convert file to Buffer
+    // Convert file to Buffer then Base64
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-
-    let extractedText = "";
-
-    try {
-      // Modern PDF parsing using unpdf (which uses pdf.js under the hood without Node limits)
-      const pdf = await getDocumentProxy(new Uint8Array(buffer));
-      const { text } = await extractText(pdf);
-      
-      let finalString = "";
-      if (Array.isArray(text)) {
-        finalString = text.join("\n");
-      } else if (typeof text === "string") {
-        finalString = text;
-      }
-      extractedText = finalString;
-    } catch (pdfErr) {
-      console.warn("[PDF Parse] Failed to extract text via unpdf, attempting string fallback:", pdfErr);
-      // Fallback binary text extraction
-      extractedText = buffer.toString("utf-8").replace(/[^\x20-\x7E\n\r\t]/g, " ");
+    const base64Data = buffer.toString("base64");
+    
+    // Determine Mime Type
+    let mimeType = file.type;
+    if (!mimeType) {
+      if (file.name.toLowerCase().endsWith(".pdf")) mimeType = "application/pdf";
+      else if (file.name.toLowerCase().endsWith(".png")) mimeType = "image/png";
+      else if (file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".jpeg")) mimeType = "image/jpeg";
+      else mimeType = "application/pdf"; // Fallback
     }
 
-    if (!extractedText || extractedText.trim().length === 0) {
-      extractedText = `Resume File: ${file.name}\nCandidate with skills in Full-Stack Development, React, Next.js, Python, Data Structures, SQL, and Git.`;
-    }
-
-    // Send extracted text to Gemini API for AI structured parsing
-    const parsedResult = await parseResumeWithGemini(extractedText);
+    // Send raw Base64 natively to Gemini Vision for true Multimodal understanding
+    const parsedResult = await parseResumeWithGemini(base64Data, mimeType);
 
     return NextResponse.json(
       {

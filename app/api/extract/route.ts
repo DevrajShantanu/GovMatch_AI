@@ -18,32 +18,7 @@ const AIResponseSchema = z.object({
   interests: z.array(z.string()),
 });
 
-// ---------------------------------------------------------------------------
-// Keyword-based fallback extraction (when Gemini is unavailable)
-// ---------------------------------------------------------------------------
-
-const TECH_KEYWORDS = [
-  "Python", "JavaScript", "TypeScript", "React", "Next.js", "Node.js", "SQL", "PostgreSQL",
-  "MongoDB", "Docker", "Kubernetes", "AWS", "GCP", "Azure", "Machine Learning", "Deep Learning",
-  "NLP", "Data Science", "TensorFlow", "PyTorch", "REST API", "GraphQL", "Git", "Linux",
-  "Java", "C++", "Go", "Rust", "Figma", "CSS", "HTML", "Redux", "FastAPI", "Django",
-  "Flask", "Blockchain", "Solidity", "Web3", "Pandas", "NumPy", "Scikit-learn",
-];
-
-const DOMAIN_KEYWORDS = [
-  "AI & Public Policy", "Web Development", "Data Analysis", "Cybersecurity", "Cloud Computing",
-  "Software Engineering", "Mobile Development", "System Design", "Research", "DevOps",
-];
-
-function extractKeywords(text: string): { skills: string[]; interests: string[] } {
-  const lower = text.toLowerCase();
-  const skills = TECH_KEYWORDS.filter((kw) => lower.includes(kw.toLowerCase()));
-  const interests = DOMAIN_KEYWORDS.filter((kw) => lower.includes(kw.toLowerCase()));
-  return {
-    skills: skills.length > 0 ? skills : ["Python", "JavaScript", "SQL"],
-    interests: interests.length > 0 ? interests : ["Software Engineering", "Web Development"],
-  };
-}
+// Fallbacks removed per strict requirements
 
 // ---------------------------------------------------------------------------
 // POST /api/extract
@@ -78,22 +53,22 @@ export async function POST(req: NextRequest) {
   try {
     aiJson = await generateAIJSON(prompt);
   } catch (err: any) {
-    console.warn("[POST /api/extract] AI unavailable, using keyword fallback:", err.message);
-    return NextResponse.json(extractKeywords(resumeText), { status: 200 });
+    console.error("[POST /api/extract] AI unavailable:", err.message);
+    return NextResponse.json({ error: "Failed to extract skills via AI." }, { status: 500 });
   }
 
   let aiData: unknown;
   try {
     aiData = JSON.parse(aiJson);
   } catch {
-    console.warn("[POST /api/extract] AI returned invalid JSON, using keyword fallback");
-    return NextResponse.json(extractKeywords(resumeText), { status: 200 });
+    console.error("[POST /api/extract] AI returned invalid JSON");
+    return NextResponse.json({ error: "AI returned invalid JSON format." }, { status: 500 });
   }
 
   const validated = AIResponseSchema.safeParse(aiData);
   if (!validated.success) {
-    console.warn("[POST /api/extract] AI response schema mismatch, using keyword fallback");
-    return NextResponse.json(extractKeywords(resumeText), { status: 200 });
+    console.error("[POST /api/extract] AI response schema mismatch");
+    return NextResponse.json({ error: "AI response did not match expected schema." }, { status: 500 });
   }
 
   return NextResponse.json(

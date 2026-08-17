@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { generateAIJSON } from "@/lib/ai";
-import { buildRecommendationPrompt } from "@/lib/prompt";
+import { generateAIJSON, embedText, cosineSimilarity } from "@/lib/ai";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getAllInternships } from "@/lib/supabase";
+import { InternshipItem } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -28,131 +30,143 @@ const AIResponseSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Deterministic fallback when Gemini is unavailable (rate limit etc.)
+// In-Memory Vector Cache (For MVP / Hackathon Performance)
+// In production, this would be a pgvector column in Supabase.
 // ---------------------------------------------------------------------------
+const internshipVectorCache = new Map<string, { vector: number[]; timestamp: number }>();
 
-const FALLBACK_ROLES = [
-  {
-    title: "AI Policy & Governance Research Intern",
-    keywords: ["python", "nlp", "ai", "data science", "public policy", "machine learning"],
-    reason: "Strong match based on your AI and data science skills relevant to public sector technology governance.",
-  },
-  {
-    title: "Full-Stack E-Governance Platform Intern",
-    keywords: ["next.js", "react", "typescript", "node.js", "sql", "rest api", "javascript"],
-    reason: "Your web development skills align well with government digital infrastructure projects.",
-  },
-  {
-    title: "Data Science & Citizen Analytics Intern",
-    keywords: ["python", "sql", "data visualization", "machine learning", "pandas", "statistics"],
-    reason: "Your data analysis capabilities are suited for citizen services analytics and reporting.",
-  },
-  {
-    title: "Cybersecurity Anomaly Detection Intern",
-    keywords: ["python", "network security", "linux", "docker", "machine learning", "security"],
-    reason: "Your technical skills are applicable to national cybersecurity monitoring systems.",
-  },
-  {
-    title: "Blockchain Solutions Intern",
-    keywords: ["solidity", "blockchain", "web3", "javascript", "typescript", "smart contracts"],
-    reason: "Your programming background maps to Reserve Bank Innovation Hub blockchain initiatives.",
-  },
-];
+async function getInternshipVector(internship: InternshipItem): Promise<number[]> {
+  const cacheKey = internship.id;
+  const cached = internshipVectorCache.get(cacheKey);
+  
+  // Cache valid for 24 hours
+  if (cached && (Date.now() - cached.timestamp < 1000 * 60 * 60 * 24)) {
+    return cached.vector;
+  }
 
-function generateFallbackRecommendations(skills: string[], interests: string[]) {
-  const userTerms = [...skills, ...interests].map((s) => s.toLowerCase());
+  // Combine relevant fields to embed the meaning of this internship
+  const textToEmbed = `
+    Title: ${internship.title}
+    Organization: ${internship.organization}
+    Category: ${internship.category || "General"}
+    Description: ${internship.description}
+    Required Skills: ${(internship.required_skills || []).join(", ")}
+  `.trim();
 
-  return FALLBACK_ROLES
-    .map((role) => {
-      const matchCount = role.keywords.filter((kw) =>
-        userTerms.some((term) => term.includes(kw) || kw.includes(term))
-      ).length;
-      const matchScore = Math.min(
-        40 + Math.round((matchCount / role.keywords.length) * 60),
-        98
-      );
-      return { title: role.title, matchScore, reason: role.reason };
-    })
-    .sort((a, b) => b.matchScore - a.matchScore);
+  const vector = await embedText(textToEmbed);
+  
+  internshipVectorCache.set(cacheKey, { vector, timestamp: Date.now() });
+  return vector;
 }
+
+// Fallbacks removed per strict requirements
 
 // ---------------------------------------------------------------------------
 // POST /api/recommend
 // ---------------------------------------------------------------------------
 
-/**
- * POST /api/recommend
- *
- * Input:  { skills: string[], interests: string[], resumeText: string }
- * Output: { recommendations: [{ title, matchScore, reason }], fallback?: boolean }
- */
 export async function POST(req: NextRequest) {
   // 1. Parse & validate request body
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { error: "Request body must be valid JSON." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
   }
 
   const parsed = RequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      {
-        error: "Invalid request body.",
-        details: parsed.error.flatten().fieldErrors,
-      },
+      { error: "Invalid request body.", details: parsed.error.flatten().fieldErrors },
       { status: 400 }
     );
   }
 
   const { skills, interests, resumeText } = parsed.data;
 
-  // 2. Build structured prompt
-  const prompt = buildRecommendationPrompt(skills, interests, resumeText);
-
-  // 3. Call Gemini and parse JSON — fall back gracefully on failure
-  let aiJson: string;
+  // 2. Fetch all internships (Real DB or Mock fallback)
+  let allInternships: InternshipItem[] = [];
   try {
-    aiJson = await generateAIJSON(prompt);
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.from("internships").select("*").eq("status", "Open");
+    if (error) throw error;
+    allInternships = data as InternshipItem[];
+  } catch (err) {
+    console.error("[Vector Search] Supabase fetch failed:", err);
+    return NextResponse.json({ error: "Failed to fetch internships from database." }, { status: 500 });
+  }
+
+  if (allInternships.length === 0) {
+    return NextResponse.json({ recommendations: [] }, { status: 200 });
+  }
+
+  try {
+    // 3. Generate Vector Embedding for the Candidate
+    const candidateText = `
+      Skills: ${skills.join(", ")}
+      Interests: ${interests.join(", ")}
+      Experience Summary: ${resumeText.slice(0, 2000)}
+    `.trim();
+    
+    const candidateVector = await embedText(candidateText);
+
+    // 4. Generate/Retrieve Vectors for all Internships and calculate Cosine Similarity
+    const scoredInternships = await Promise.all(
+      allInternships.map(async (internship) => {
+        try {
+          const internshipVector = await getInternshipVector(internship);
+          const similarity = cosineSimilarity(candidateVector, internshipVector);
+          // Convert [-1, 1] cosine similarity to a [0, 100] percentage match score
+          // Generally embeddings are tightly clustered between 0.5 and 1.0, so we normalize aggressively
+          const normalizedScore = Math.min(Math.max(Math.round(((similarity - 0.5) / 0.5) * 100), 50), 99);
+          
+          return { internship, score: normalizedScore };
+        } catch (e) {
+          return { internship, score: 0 }; // Fallback score if embedding fails for an item
+        }
+      })
+    );
+
+    // 5. Take the Top 5 Semantic Matches
+    const topMatches = scoredInternships
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    // 6. Use LLM to generate human-readable "reasons" for the matches based on their true semantic fit
+    const explanationPrompt = `
+      You are an AI career coach. We used Vector Search to find the top matching government internships for this candidate.
+      
+      Candidate Profile:
+      Skills: ${skills.join(", ")}
+      Interests: ${interests.join(", ")}
+      
+      Top Matches Found:
+      ${JSON.stringify(topMatches.map(m => ({ title: m.internship.title, score: m.score, required_skills: m.internship.required_skills })))}
+      
+      Return ONLY a JSON object matching this schema:
+      {
+        "recommendations": [
+          {
+            "title": "exact title from the matches above",
+            "matchScore": exact score from the matches above,
+            "reason": "1 concise sentence explaining exactly why the candidate's specific skills align with this role."
+          }
+        ]
+      }
+    `;
+
+    const aiJson = await generateAIJSON(explanationPrompt);
+    const aiData = JSON.parse(aiJson);
+    const validated = AIResponseSchema.safeParse(aiData);
+
+    if (validated.success) {
+      return NextResponse.json({ recommendations: validated.data.recommendations }, { status: 200 });
+    } else {
+      throw new Error("LLM Explanation failed validation.");
+    }
+
   } catch (err: any) {
-    console.warn("[POST /api/recommend] AI unavailable, using fallback:", err.message);
-    const fallbackRecs = generateFallbackRecommendations(skills, interests);
-    return NextResponse.json(
-      { recommendations: fallbackRecs, fallback: true },
-      { status: 200 }
-    );
+    console.error("[POST /api/recommend] Vector Search / AI failed:", err.message);
+    return NextResponse.json({ error: "Failed to generate recommendations." }, { status: 500 });
   }
-
-  // 4. Validate AI response shape
-  let aiData: unknown;
-  try {
-    aiData = JSON.parse(aiJson);
-  } catch {
-    console.warn("[POST /api/recommend] AI returned invalid JSON, using fallback:", aiJson);
-    const fallbackRecs = generateFallbackRecommendations(skills, interests);
-    return NextResponse.json(
-      { recommendations: fallbackRecs, fallback: true },
-      { status: 200 }
-    );
-  }
-
-  const validated = AIResponseSchema.safeParse(aiData);
-  if (!validated.success) {
-    console.warn("[POST /api/recommend] AI response failed schema validation, using fallback");
-    const fallbackRecs = generateFallbackRecommendations(skills, interests);
-    return NextResponse.json(
-      { recommendations: fallbackRecs, fallback: true },
-      { status: 200 }
-    );
-  }
-
-  // 5. Return clean AI response
-  return NextResponse.json(
-    { recommendations: validated.data.recommendations },
-    { status: 200 }
-  );
 }

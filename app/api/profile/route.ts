@@ -23,7 +23,10 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<Pr
     }
 
     if (!userId) {
-      userId = "usr_101"; // Fallback for unauthenticated dev testing
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Please log in." },
+        { status: 401 }
+      );
     }
 
     const supabase = await createSupabaseServerClient();
@@ -81,7 +84,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<P
     }
 
     if (!userId) {
-      userId = "usr_101";
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Please log in." },
+        { status: 401 }
+      );
     }
 
     const updateData = {

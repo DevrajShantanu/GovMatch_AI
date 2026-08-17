@@ -79,7 +79,10 @@ export interface ResumeParseResult {
   education: string;
   experience: string;
   atsScore: number;
-  atsFeedback: string[];
+  atsFeedback: {
+    type: "strength" | "improvement" | "keyword";
+    message: string;
+  }[];
 }
 
 // Recommendations: /api/recommend

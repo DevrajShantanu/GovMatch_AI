@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllInternships, createInternship } from "@/lib/supabase";
+
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { ApiResponse, CreateInternshipRequest, InternshipItem } from "@/types";
 
@@ -28,12 +28,10 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<In
     const { data, error } = await query;
 
     if (error) {
-      console.warn("[GET /api/internships] Supabase error, falling back to mock:", error.message);
-      // Fallback to lib/supabase.ts mock data
-      const fallbackData = await getAllInternships(search, category);
+      console.error("[GET /api/internships] Supabase error:", error.message);
       return NextResponse.json(
-        { success: true, data: fallbackData, message: `Retrieved ${fallbackData.length} internships (fallback).` },
-        { status: 200 }
+        { success: false, error: "Failed to fetch internships from database." },
+        { status: 500 }
       );
     }
 

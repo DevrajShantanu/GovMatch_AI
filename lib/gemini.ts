@@ -117,63 +117,93 @@ async function callGemini(prompt: string, bypassCache = false): Promise<string> 
  * Returns { skills, education, experience }.
  */
 export async function parseResumeWithGemini(
-  resumeText: string
+  base64Data: string,
+  mimeType: string
 ): Promise<ResumeParseResult> {
-  const defaultFallback: ResumeParseResult = {
-    skills: ["JavaScript", "TypeScript", "React", "Node.js"],
-    education:
-      "Bachelor of Technology in Computer Science (Extract derived from resume text)",
-    experience:
-      "Software Developer Intern — worked on full stack web applications and backend APIs.",
-    atsScore: 75,
-    atsFeedback: [
-      "Add more measurable metrics (e.g. 'improved performance by X%')",
-      "Ensure standard section headers are used (Education, Experience, Skills)",
-      "Include keywords relevant to targeted government technology roles",
-    ],
-  };
-
   if (!ai || !apiKey) {
-    console.warn(
-      "[Gemini] GEMINI_API_KEY is not set. Returning structured fallback resume data."
-    );
-    return defaultFallback;
+    throw new Error("GEMINI_API_KEY is not configured. Cannot parse resume.");
   }
 
   try {
     const prompt = `You are an expert HR AI assistant, ATS (Applicant Tracking System) parser, and career coach.
 Analyze the following raw resume text and extract the candidate's technical and soft skills, education background, and work experience.
-Additionally, evaluate the resume for ATS compatibility based on standard metrics (e.g., keyword density, measurable impact, formatting, standard section headers).
+
+You must also act as a strict ATS evaluator. Grade the resume against these industry-standard metrics:
+1. Quantification: Does the candidate use numbers and metrics (e.g., "Increased sales by 20%")?
+2. Action Verbs: Do descriptions start with strong action verbs (e.g., "Led", "Developed")?
+3. Buzzwords & Fluff: Avoid generic terms like "hard worker" or "team player".
+4. Readability & Structure: Are standard sections easily identifiable?
 
 Return ONLY a valid JSON object matching this exact schema (no markdown, no explanation):
 {
   "skills": ["string"],
   "education": "string summarizing degree, college, year, and GPA if present",
   "experience": "string summarizing key work history, projects, and internships",
-  "atsScore": number (0-100 score indicating overall ATS compatibility and quality),
-  "atsFeedback": ["string (e.g., actionable tips like 'Add measurable metrics', 'Use standard section headers')"]
+  "atsScore": number (0-100 strict score indicating overall ATS compatibility and quality),
+  "atsFeedback": [
+    {
+      "type": "strength" | "improvement" | "keyword",
+      "message": "string (specific, actionable feedback)"
+    }
+  ]
 }
 
-Resume Text:
-"""
-${resumeText.slice(0, 8000)}
-"""`;
+Ensure there is a healthy mix of 'strength', 'improvement', and 'keyword' feedback types.
 
-    const responseText = await callGemini(prompt);
+Ensure there is a healthy mix of 'strength', 'improvement', and 'keyword' feedback types.
+
+Attached is the raw file of the candidate's resume (could be PDF, PNG, JPEG, etc.). Please read it natively.
+`;
+
+    // Direct call with retry logic for rate limits and high demand (503)
+    let responseText = "";
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType: mimeType,
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        responseText = response.text || "";
+        if (!responseText.trim()) throw new Error("Empty response from multimodal model.");
+        break; // Success, exit retry loop
+      } catch (err: any) {
+        const msg = err?.message ?? "";
+        const isRateLimit = msg.includes("429") || msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("high demand");
+        if (isRateLimit && attempt < 2) {
+          console.warn(`[Gemini Vision] Model unavailable (503). Retrying in ${5 * (attempt + 1)}s...`);
+          await sleep(5000 * (attempt + 1));
+          continue;
+        }
+        throw err;
+      }
+    }
+    
     const parsed = cleanAndParseJSON<ResumeParseResult>(responseText);
 
     return {
       skills: Array.isArray(parsed.skills) ? parsed.skills : [],
-      education:
-        typeof parsed.education === "string" ? parsed.education : "",
-      experience:
-        typeof parsed.experience === "string" ? parsed.experience : "",
+      education: typeof parsed.education === "string" ? parsed.education : "",
+      experience: typeof parsed.experience === "string" ? parsed.experience : "",
       atsScore: typeof parsed.atsScore === "number" ? parsed.atsScore : 80,
-      atsFeedback: Array.isArray(parsed.atsFeedback) ? parsed.atsFeedback : defaultFallback.atsFeedback,
+      atsFeedback: Array.isArray(parsed.atsFeedback) ? parsed.atsFeedback : [],
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("[Gemini] Resume parsing error:", error);
-    return defaultFallback;
+    throw new Error(`Failed to parse resume: ${error.message || "Unknown error"}`);
   }
 }
 
@@ -189,37 +219,8 @@ export async function recommendInternshipsWithGemini(
     return [];
   }
 
-  const fallbackRecommendations = (): RecommendationResult[] => {
-    const lowerUserSkills = new Set(
-      userSkills.map((s) => s.toLowerCase().trim())
-    );
-
-    return internships
-      .map((item) => {
-        const required = item.required_skills || [];
-        const requiredLower = required.map((s) => s.toLowerCase().trim());
-        const matched = requiredLower.filter((s) => lowerUserSkills.has(s));
-        const missing = required.filter(
-          (s) => !lowerUserSkills.has(s.toLowerCase().trim())
-        );
-        const score =
-          required.length > 0
-            ? Math.round((matched.length / required.length) * 100)
-            : 70;
-
-        return {
-          title: item.title || "Internship Position",
-          match_score: score,
-          reason: `Matched ${matched.length} of ${required.length} required skills (${matched.join(", ") || "General alignment"}).`,
-          missing_skills: missing,
-          why_this_match: `Strong fit based on your background in ${userSkills.slice(0, 3).join(", ")}.`,
-        };
-      })
-      .sort((a, b) => b.match_score - a.match_score);
-  };
-
   if (!ai || !apiKey) {
-    return fallbackRecommendations();
+    throw new Error("GEMINI_API_KEY is not configured.");
   }
 
   try {
@@ -256,10 +257,10 @@ Return ONLY a JSON ARRAY (no markdown, no explanation) sorted by match_score des
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed;
     }
-    return fallbackRecommendations();
-  } catch (error) {
+    throw new Error("Gemini returned invalid or empty recommendations array.");
+  } catch (error: any) {
     console.error("[Gemini] Internship recommendation error:", error);
-    return fallbackRecommendations();
+    throw new Error(`Failed to generate recommendations: ${error.message}`);
   }
 }
 
@@ -271,22 +272,8 @@ export async function analyzeSkillGapWithGemini(
   userSkills: string[],
   requiredSkills: string[]
 ): Promise<SkillGapResult> {
-  const userLower = new Set(userSkills.map((s) => s.toLowerCase().trim()));
-  const missing = requiredSkills.filter(
-    (s) => !userLower.has(s.toLowerCase().trim())
-  );
-
-  const fallbackResult: SkillGapResult = {
-    missing_skills: missing,
-    priority: missing.slice(0, 3),
-    suggestions: missing.map(
-      (skill) =>
-        `Take a practical course on ${skill} and build a mini-project to demonstrate proficiency.`
-    ),
-  };
-
   if (!ai || !apiKey) {
-    return fallbackResult;
+    throw new Error("GEMINI_API_KEY is not configured.");
   }
 
   try {
@@ -309,19 +296,17 @@ Return ONLY a valid JSON object (no markdown, no explanation):
     const responseText = await callGemini(prompt);
     const parsed = cleanAndParseJSON<SkillGapResult>(responseText);
 
+    if (!Array.isArray(parsed.missing_skills) || !Array.isArray(parsed.priority) || !Array.isArray(parsed.suggestions)) {
+      throw new Error("Gemini returned invalid skill gap JSON structure.");
+    }
+
     return {
-      missing_skills: Array.isArray(parsed.missing_skills)
-        ? parsed.missing_skills
-        : fallbackResult.missing_skills,
-      priority: Array.isArray(parsed.priority)
-        ? parsed.priority
-        : fallbackResult.priority,
-      suggestions: Array.isArray(parsed.suggestions)
-        ? parsed.suggestions
-        : fallbackResult.suggestions,
+      missing_skills: parsed.missing_skills,
+      priority: parsed.priority,
+      suggestions: parsed.suggestions,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("[Gemini] Skill gap analysis error:", error);
-    return fallbackResult;
+    throw new Error(`Failed to analyze skill gap: ${error.message}`);
   }
 }
