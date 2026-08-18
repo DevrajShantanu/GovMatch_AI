@@ -158,6 +158,11 @@ export default function InternshipDetailPage() {
       : ["Python", "Next.js", "TypeScript", "React", "SQL", "NLP"];
   }, [profile?.skills]);
 
+  // Force scroll to top on mount to fix Next.js scroll restoration issues
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
+
   // Load target internship from Supabase
   useEffect(() => {
     async function loadDetail() {
