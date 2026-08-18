@@ -65,9 +65,8 @@ export default function LandingPage() {
             {/* Main Title & Subtitle */}
             <div className="animate-fade-in-up animation-delay-100 space-y-5">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
-                Find Your Perfect{" "}
-                <span className="hero-gradient-animated drop-shadow-xs">PMIS Corporate Internship</span>
-                {" "}with AI
+                Accelerate Your Career with{" "}
+                <span className="hero-gradient-animated drop-shadow-xs">AI-Matched PMIS Internships</span>
               </h1>
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-medium">
                 GovMatch AI transparently matches students with India's Top 500 Corporate partners under the PM Internship Scheme—
