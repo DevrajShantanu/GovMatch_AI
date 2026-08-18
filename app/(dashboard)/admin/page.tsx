@@ -1,5 +1,6 @@
 import { BiasDetectionPanel } from "@/components/admin/bias-detection-panel";
 import { ApplicationsTable } from "@/components/admin/applications-table";
+import { RegisteredCandidatesCard } from "@/components/admin/registered-candidates-card";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ShieldCheck, ShieldAlert, Users, Briefcase, Activity } from "lucide-react";
@@ -41,8 +42,8 @@ export default async function AdminPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const [{ count: userCount }, { count: appCount }] = await Promise.all([
-    adminSupabase.from("profiles").select("*", { count: "exact", head: true }),
+  const [{ data: profiles, count: userCount }, { count: appCount }] = await Promise.all([
+    adminSupabase.from("profiles").select("*", { count: "exact" }),
     adminSupabase.from("applications").select("*", { count: "exact", head: true })
   ]);
 
@@ -71,19 +72,7 @@ export default async function AdminPage() {
           Live Platform Activity
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-5 space-y-2 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 border-outline-variant/40 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
-            <div className="flex justify-between items-start">
-              <span className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                <Users className="h-5 w-5" />
-              </span>
-              <Badge variant="outline" className="bg-white/50 dark:bg-slate-900/50 text-[10px]">Active</Badge>
-            </div>
-            <div>
-              <p className="text-3xl font-black text-on-surface dark:text-white mt-2">{userCount || 0}</p>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Registered Candidates</p>
-            </div>
-          </Card>
+          <RegisteredCandidatesCard userCount={userCount || 0} profiles={profiles || []} />
 
           <Card className="p-5 space-y-2 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/50 border-outline-variant/40 dark:border-slate-800 shadow-sm relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />

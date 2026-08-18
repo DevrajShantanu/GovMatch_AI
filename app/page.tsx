@@ -27,17 +27,17 @@ import {
 } from "lucide-react";
 
 export default function LandingPage() {
-  const ministryList = [
-    "NITI Aayog",
-    "MeitY Digital India",
-    "National Informatics Centre (NIC)",
-    "CERT-In Cybersecurity",
-    "ISRO Frontier Technology",
-    "Reserve Bank Innovation Hub",
-    "Ministry of Statistics & PI",
-    "DRDO Research Laboratories",
-    "Ministry of Electronics & IT",
-    "Digital India Corporation",
+  const companyList = [
+    "Tata Consultancy Services",
+    "Reliance Industries",
+    "Larsen & Toubro",
+    "Infosys",
+    "Mahindra Group",
+    "HDFC Bank",
+    "ITC Limited",
+    "Wipro",
+    "HCLTech",
+    "Tata Motors",
   ];
 
   return (
@@ -58,7 +58,7 @@ export default function LandingPage() {
             <div className="animate-fade-in">
               <Badge variant="ai" className="gap-2 px-4 py-1.5 text-xs shadow-md shadow-primary/20 dark:shadow-blue-500/20 hover:scale-105 transition-transform">
                 <Sparkles className="h-3.5 w-3.5 animate-spin-slow" />
-                Gemini Powered · India&apos;s National Public Sector Internship Portal
+                Gemini Powered · Official PM Internship Scheme Portal
               </Badge>
             </div>
 
@@ -66,11 +66,11 @@ export default function LandingPage() {
             <div className="animate-fade-in-up animation-delay-100 space-y-5">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
                 Find Your Perfect{" "}
-                <span className="hero-gradient-animated drop-shadow-xs">Government Internship</span>
+                <span className="hero-gradient-animated drop-shadow-xs">PMIS Corporate Internship</span>
                 {" "}with AI
               </h1>
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-medium">
-                GovMatch AI transparently matches students with prestigious ministry projects—
+                GovMatch AI transparently matches students with India's Top 500 Corporate partners under the PM Internship Scheme—
                 analyzing your verified competencies, removing systemic bias, and bridging learning gaps in real time.
               </p>
             </div>
@@ -140,15 +140,15 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4 text-primary dark:text-blue-400" />
-                      <span className="text-xs font-bold text-primary dark:text-blue-400">NITI Aayog · Frontier Tech Division</span>
+                      <span className="text-xs font-bold text-primary dark:text-blue-400">Tata Motors · Advanced Manufacturing</span>
                     </div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">₹35,000 / month</span>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">₹5,000 / month</span>
                   </div>
                   <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
-                    AI Research Fellow — National LLM Policy & Evaluation
+                    Automotive Engineering Intern — Electric Vehicles
                   </h4>
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {["Python", "NLP", "PyTorch", "Large Language Models", "Public Policy"].map((skill) => (
+                    {["Mechanical Engineering", "CAD", "Electric Vehicles", "Operations", "Project Management"].map((skill) => (
                       <span
                         key={skill}
                         className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 hover:scale-105 transition-transform"
@@ -165,10 +165,10 @@ export default function LandingPage() {
             <div className="animate-fade-in-up animation-delay-400 w-full max-w-4xl pt-2">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 p-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xl backdrop-blur-md">
                 {[
-                  { value: "500+", label: "Ministry Opportunities", icon: Building2, color: "text-blue-600 dark:text-blue-400" },
+                  { value: "500+", label: "Top Corporate Partners", icon: Building2, color: "text-blue-600 dark:text-blue-400" },
                   { value: "96%", label: "AI Match Precision", icon: Target, color: "text-emerald-600 dark:text-emerald-400" },
                   { value: "100%", label: "Fairness Audited", icon: ShieldCheck, color: "text-indigo-600 dark:text-indigo-400" },
-                  { value: "₹25K", label: "Monthly Avg. Stipend", icon: Award, color: "text-amber-600 dark:text-amber-400" },
+                  { value: "₹5K", label: "Monthly PMIS Stipend", icon: Award, color: "text-amber-600 dark:text-amber-400" },
                 ].map((stat) => (
                   <div key={stat.label} className="flex flex-col items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
                     <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80">
@@ -188,14 +188,14 @@ export default function LandingPage() {
       <section className="py-8 bg-white dark:bg-slate-900 border-y border-slate-200/80 dark:border-slate-800 overflow-hidden transition-colors shadow-2xs">
         <div className="text-center space-y-4 mb-4">
           <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            Official Participating Government Organizations & Research Wings
+            Official PMIS Participating Top 500 Corporate Partners
           </p>
         </div>
 
         {/* Continuous Animated Moving Marquee */}
         <div className="relative w-full overflow-hidden mask-gradient">
           <div className="animate-marquee flex items-center gap-8 md:gap-12">
-            {[...ministryList, ...ministryList].map((org, idx) => (
+            {[...companyList, ...companyList].map((org, idx) => (
               <span
                 key={`${org}-${idx}`}
                 className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-blue-400 transition-colors shrink-0 group cursor-default"
@@ -313,7 +313,7 @@ export default function LandingPage() {
                 icon: Globe,
                 color: "bg-violet-100 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300",
                 title: "500+ Live Openings",
-                desc: "Real-time database of government internship openings across NITI Aayog, MeitY, ISRO, NIC, CERT-In, and more ministries.",
+                desc: "Real-time database of PMIS corporate openings across Tata, Reliance, Infosys, L&T, and more Top 500 companies.",
                 link: "/internships",
                 linkText: "Browse All Openings",
               },
@@ -362,7 +362,7 @@ export default function LandingPage() {
               Ready to Work on India&apos;s Next Big Public Initiative?
             </h2>
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-medium">
-              Upload your resume or enter your skills to get instant, transparent government internship recommendations powered by Gemini Flash AI.
+              Upload your resume or enter your skills to get instant, transparent PMIS corporate internship recommendations powered by Gemini Flash AI.
             </p>
           </div>
 

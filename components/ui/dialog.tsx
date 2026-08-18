@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
@@ -11,15 +12,32 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = React.useState(false);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+  React.useEffect(() => {
+    setMounted(true);
+    
+    // Prevent scrolling on body when dialog is open
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [open]);
+
+  if (!open || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
       <div
         className="fixed inset-0"
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-outline-variant/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="relative z-[101] w-full max-w-lg overflow-hidden rounded-2xl border border-outline-variant/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <button
           type="button"
           onClick={() => onOpenChange(false)}
@@ -30,7 +48,8 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         </button>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
