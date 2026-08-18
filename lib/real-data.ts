@@ -1,4 +1,4 @@
-import { InternshipItem } from "./types";
+import { InternshipItem } from "@/types";
 
 export const REAL_INTERNSHIPS: Omit<InternshipItem, "id" | "created_at">[] = [
   {
