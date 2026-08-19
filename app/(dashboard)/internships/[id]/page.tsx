@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/utils";
 import { Internship } from "@/lib/types";
-import { fetchInternships, InternshipItem } from "@/lib/api-client";
+import { InternshipItem } from "@/lib/api-client";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useToast } from "@/components/ui/toast";
@@ -103,7 +103,7 @@ function mapToFrontendInternship(item: InternshipItem, candidateSkills: string[]
           year: "numeric",
         })
       : "Active",
-    deadline: "28 Feb 2026",
+    deadline: "Open Application",
     openings: item.openings ?? 5,
     category: item.category ?? "Public Policy & Technology",
     description: item.description,
@@ -163,23 +163,19 @@ export default function InternshipDetailPage() {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, []);
 
-  // Load target internship from Supabase
+  // Load target internship from Supabase via dedicated single-record endpoint
   useEffect(() => {
     async function loadDetail() {
       if (!id) return;
       setLoading(true);
       setError(null);
       try {
-        const result = await fetchInternships({});
+        const res = await fetch(`/api/internships/${id}`);
+        const result = await res.json();
         if (result.success && result.data) {
-          const found = result.data.find((item) => item.id === id);
-          if (found) {
-            setRawInternship(found);
-          } else {
-            setError(`Internship #${id} was not found in the public database.`);
-          }
+          setRawInternship(result.data);
         } else {
-          setError(result.error ?? "Failed to fetch internship details.");
+          setError(result.error ?? `Internship #${id} was not found in the public database.`);
         }
       } catch (err: any) {
         setError(err?.message ?? "An error occurred while loading this record.");

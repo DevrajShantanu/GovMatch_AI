@@ -172,7 +172,10 @@ export default function ResumeAnalysisPage() {
 
       const supabase = getSupabaseBrowserClient();
       const { error: upsertError } = await supabase.from("profiles").upsert({
+        ...(profile || {}),
         id: user.id,
+        email: user.email || profile?.email || "",
+        full_name: profile?.full_name || user?.user_metadata?.full_name || "",
         skills: mergedSkills,
         degree: profile?.degree || parsedData.education,
         updated_at: new Date().toISOString(),
@@ -331,8 +334,8 @@ export default function ResumeAnalysisPage() {
                   disabled={isSyncing || synced}
                   className={`gap-2 font-bold shadow-lg transition-all ${
                     synced
-                      ? "bg-emerald-500 text-white hover:bg-emerald-600 border-0"
-                      : "bg-white text-primary hover:bg-white/90"
+                      ? "bg-emerald-500 text-white hover:bg-emerald-600 border-0 dark:bg-emerald-500 dark:text-white dark:hover:bg-emerald-600"
+                      : "bg-white text-primary hover:bg-white/90 dark:bg-white dark:text-primary dark:hover:bg-white/90"
                   }`}
                   size="lg"
                 >
@@ -355,7 +358,7 @@ export default function ResumeAnalysisPage() {
                   variant="outline"
                   size="lg"
                   onClick={handleReset}
-                  className="border-white/40 text-white hover:bg-white/10"
+                  className="border-white/40 text-white hover:bg-white/10 bg-transparent dark:bg-transparent dark:text-white dark:border-white/40 dark:hover:bg-white/10"
                 >
                   Upload New
                 </Button>

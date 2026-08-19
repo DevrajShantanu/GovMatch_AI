@@ -15,7 +15,6 @@ import {
   Code2,
   Sun,
   Moon,
-  Laptop,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/auth-provider";

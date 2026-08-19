@@ -310,7 +310,7 @@ export default function NotificationsPage() {
         })}
       </div>
 
-      {notifications.every((n) => n.read) && (
+      {notifications.length > 0 && notifications.every((n) => n.read) && (
         <div className="text-center py-12 text-on-surface-variant dark:text-slate-400 text-sm animate-scale-in bg-white dark:bg-slate-900 rounded-xl border border-outline-variant/40 dark:border-slate-800 shadow-xs">
           <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-500" />
           <p className="font-bold text-on-surface dark:text-white">All caught up!</p>

@@ -150,8 +150,6 @@ Return ONLY a valid JSON object matching this exact schema (no markdown, no expl
 
 Ensure there is a healthy mix of 'strength', 'improvement', and 'keyword' feedback types.
 
-Ensure there is a healthy mix of 'strength', 'improvement', and 'keyword' feedback types.
-
 Attached is the raw file of the candidate's resume (could be PDF, PNG, JPEG, etc.). Please read it natively.
 `;
 
