@@ -119,7 +119,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">Shantanu Sarkar</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">Demo User</span>
                         <Badge variant="secondary" className="text-[10px] py-0 px-2">Live Candidate</Badge>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">B.Tech Computer Science & AI · Class of 2026</p>
