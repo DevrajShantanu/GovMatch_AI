@@ -12,7 +12,7 @@
  * @param skills      - Candidate's skill list
  * @param interests   - Candidate's interest areas
  * @param resumeText  - Raw resume text (truncated to avoid token overload)
- * @returns Full prompt string for Gemini
+ * @returns Full prompt string for the AI
  */
 export function buildRecommendationPrompt(
   skills: string[],
@@ -57,7 +57,7 @@ Return this exact JSON structure and nothing else:
  * Builds the skill & interest extraction prompt.
  *
  * @param resumeText  - Raw resume text to parse
- * @returns Full prompt string for Gemini
+ * @returns Full prompt string for the AI
  */
 export function buildExtractPrompt(resumeText: string): string {
   const truncatedResume = resumeText.slice(0, 6000);

@@ -132,7 +132,7 @@ export default function StudentDashboardPage() {
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);
 
-  // Guard ref: ensures Gemini API request is only sent ONCE on initial mount
+  // Guard ref: ensures AI API request is only sent ONCE on initial mount
   const hasRequestedAIRef = useRef(false);
   const isRequestingRef = useRef(false);
 
@@ -432,7 +432,7 @@ export default function StudentDashboardPage() {
               <Sparkles className="h-5 w-5 text-primary dark:text-blue-400" /> Top AI Recommendation
             </h2>
             <p className="text-xs text-on-surface-variant dark:text-slate-400">
-              Dynamic rank based on your real-time skills profile & Gemini AI scoring
+              Dynamic rank based on your real-time skills profile & AI-powered scoring
             </p>
           </div>
           <Button

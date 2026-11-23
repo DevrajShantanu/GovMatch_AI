@@ -343,7 +343,7 @@ export default function SkillGapPage() {
       {usingAI && !isLoading && (
         <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-ai-gradient-subtle p-3 text-xs text-primary font-medium shadow-xs animate-fade-in">
           <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-          <span>AI Roadmap generated via Gemini API with prioritized public sector courses.</span>
+          <span>AI Roadmap generated with prioritized public sector courses.</span>
         </div>
       )}
 

@@ -103,7 +103,7 @@ export default function ResumeAnalysisPage() {
     setAnalyzeStep(1);
 
     try {
-      // Step 1: Single combined Parse via /api/resume (calls Gemini exactly ONCE)
+      // Step 1: Single combined Parse via /api/resume (calls AI exactly ONCE)
       const resumeResult = await parseResumeFile(file);
       setAnalyzeStep(2);
 
@@ -212,7 +212,7 @@ export default function ResumeAnalysisPage() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Badge variant="ai" className="gap-1 px-2.5 py-0.5 text-[11px]">
-            <Sparkles className="h-3.5 w-3.5" /> Powered by Gemini AI Engine
+            <Sparkles className="h-3.5 w-3.5" /> Powered by AI Engine
           </Badge>
           <span className="text-xs text-on-surface-variant dark:text-slate-400 font-medium">Single-Pass PDF Competency Extraction</span>
         </div>
@@ -264,7 +264,7 @@ export default function ResumeAnalysisPage() {
                 <div className="space-y-3 pt-4">
                   {[
                     { step: 1, label: "Parsing PDF text structure..." },
-                    { step: 2, label: "Extracting competencies with Gemini AI..." },
+                    { step: 2, label: "Extracting competencies with AI..." },
                     { step: 3, label: "Formatting profile alignment..." },
                   ].map(({ step, label }) => (
                     <div
@@ -374,7 +374,7 @@ export default function ResumeAnalysisPage() {
                 <h3 className="text-base font-bold text-on-surface dark:text-white flex items-center gap-2">
                   <Brain className="h-5 w-5 text-primary dark:text-blue-400" /> Extracted Competencies ({parsedData?.skills.length || 0})
                 </h3>
-                <span className="text-xs text-primary dark:text-blue-400 font-semibold">Gemini Extracted</span>
+                <span className="text-xs text-primary dark:text-blue-400 font-semibold">AI Extracted</span>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 {parsedData?.skills.map((skill, idx) => (

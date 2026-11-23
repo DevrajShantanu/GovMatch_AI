@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 /**
  * POST /api/skill-gap
  * Accepts candidate userSkills and requiredSkills for an internship/job role.
- * Analyzes missing skills, prioritizes learning order, and provides suggestions via Gemini AI.
+ * Analyzes missing skills, prioritizes learning order, and provides suggestions via AI.
  */
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<SkillGapResult>>> {
   try {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<S
       );
     }
 
-    // Perform skill gap analysis via Gemini API (with algorithmic fallback)
+    // Perform skill gap analysis via AI API (with algorithmic fallback)
     const result = await analyzeSkillGapWithGemini(userSkills, requiredSkills);
 
     return NextResponse.json(

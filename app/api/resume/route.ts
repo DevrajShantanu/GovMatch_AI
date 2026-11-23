@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 /**
  * POST /api/resume
- * Upload PDF resume file, parse text content, analyze with Gemini AI, and return structured JSON
+ * Upload PDF resume file, parse text content, analyze with AI, and return structured JSON
  */
 export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<ResumeParseResult>>> {
   try {
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<R
       else mimeType = "application/pdf"; // Fallback
     }
 
-    // Send raw Base64 natively to Gemini Vision for true Multimodal understanding
+    // Send raw Base64 natively to AI Vision for true Multimodal understanding
     const parsedResult = await parseResumeWithGemini(base64Data, mimeType);
 
     return NextResponse.json(

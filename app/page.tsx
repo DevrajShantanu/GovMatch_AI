@@ -58,7 +58,7 @@ export default function LandingPage() {
             <div className="animate-fade-in">
               <Badge variant="ai" className="gap-2 px-4 py-1.5 text-xs shadow-md shadow-primary/20 dark:shadow-blue-500/20 hover:scale-105 transition-transform">
                 <Sparkles className="h-3.5 w-3.5 animate-spin-slow" />
-                Gemini Powered · Official PM Internship Scheme Portal
+                AI Powered · Official PM Internship Scheme Portal
               </Badge>
             </div>
 
@@ -231,7 +231,7 @@ export default function LandingPage() {
                 step: "02",
                 icon: Sparkles,
                 title: "2. Live AI Matching",
-                desc: "Gemini Flash AI analyzes your profile against active ministry postings and assigns transparent match percentages.",
+                desc: "Our AI analyzes your profile against active ministry postings and assigns transparent match percentages.",
                 color: "bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300",
               },
               {
@@ -304,7 +304,7 @@ export default function LandingPage() {
                 icon: FileText,
                 color: "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300",
                 title: "AI Resume Parser",
-                desc: "Upload your PDF resume and let Gemini AI automatically extract skills, experience, and education to build your profile instantly.",
+                desc: "Upload your PDF resume and let AI automatically extract skills, experience, and education to build your profile instantly.",
                 link: "/resume",
                 linkText: "Try Resume Analysis",
               },
@@ -361,7 +361,7 @@ export default function LandingPage() {
               Ready to Work on India&apos;s Next Big Public Initiative?
             </h2>
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-medium">
-              Upload your resume or enter your skills to get instant, transparent PMIS corporate internship recommendations powered by Gemini Flash AI.
+              Upload your resume or enter your skills to get instant, transparent PMIS corporate internship recommendations powered by AI.
             </p>
           </div>
 

@@ -2,7 +2,7 @@
  * lib/api-client.ts
  *
  * Centralized, typed fetch wrapper for all frontend → backend API calls.
- * Includes in-flight request deduplication and client-side caching to prevent Gemini quota exhaustion.
+ * Includes in-flight request deduplication and client-side caching to prevent AI quota exhaustion.
  */
 
 // ---------------------------------------------------------------------------
